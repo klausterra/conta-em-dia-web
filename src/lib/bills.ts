@@ -12,9 +12,10 @@ export const categoryLabels: Record<BillCategory, string> = {
 };
 
 export const categoryStyles: Record<BillCategory, { icon: LucideIcon; tone: string }> = {
-  Energia: { icon: Lightbulb, tone: 'bg-amber-100 text-amber-700' },
-  Agua: { icon: Droplets, tone: 'bg-sky-100 text-sky-700' },
-  Internet: { icon: Wifi, tone: 'bg-violet-100 text-violet-700' },
-  Telefone: { icon: Smartphone, tone: 'bg-rose-100 text-rose-700' },
-  Outros: { icon: ReceiptText, tone: 'bg-stone-100 text-stone-700' },
+  Energia: { icon: Lightbulb, tone: 'bg-amber-950/50 text-amber-400 border border-amber-800/40' },
+  Agua: { icon: Droplets, tone: 'bg-sky-950/50 text-sky-400 border border-sky-800/40' },
+  Internet: { icon: Wifi, tone: 'bg-violet-950/50 text-violet-400 border border-violet-800/40' },
+  Telefone: { icon: Smartphone, tone: 'bg-rose-950/50 text-rose-400 border border-rose-800/40' },
+  Outros: { icon: ReceiptText, tone: 'bg-zinc-800/60 text-zinc-300 border border-zinc-700/40' },
 };
+

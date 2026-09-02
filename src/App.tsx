@@ -5,7 +5,11 @@ import { HouseholdSetup } from '@/components/HouseholdSetup';
 import { Dashboard } from '@/components/Dashboard';
 
 function LoadingScreen() {
-  return <main className="grid min-h-screen place-items-center bg-[#f6f7f4] text-[#6c7f77]">Carregando…</main>;
+  return (
+    <main className="grid min-h-screen place-items-center bg-[#08100d] text-emerald-400 font-bold text-sm">
+      Carregando…
+    </main>
+  );
 }
 
 function HouseholdGate() {

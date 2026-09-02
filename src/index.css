@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 
 body {
+  background-color: #08100d;
+  color: #f1f5f3;
   font-family:
     'Nunito Sans',
     ui-sans-serif,
@@ -9,4 +11,6 @@ body {
     Segoe UI,
     Arial,
     sans-serif;
+  color-scheme: dark;
 }
+

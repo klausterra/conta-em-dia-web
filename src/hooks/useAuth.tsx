@@ -13,7 +13,8 @@ import {
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db, googleProvider } from '@/lib/firebase';
 
 type AuthContextValue = {
   user: User | null;
@@ -45,6 +46,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setIsLoading(false);
+      if (nextUser) {
+        void setDoc(
+          doc(db, 'users', nextUser.uid),
+          {
+            displayName: nextUser.displayName ?? nextUser.email?.split('@')[0] ?? 'Morador',
+            email: nextUser.email ?? '',
+            photoURL: nextUser.photoURL ?? '',
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true },
+        );
+      }
     });
     return unsubscribe;
   }, []);

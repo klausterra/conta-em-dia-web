@@ -24,31 +24,31 @@ export function Modal({ open, onClose, title, description, children }: ModalProp
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/20 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        className="w-full max-w-md rounded-2xl border border-[#223d32] bg-[#14231d] p-6 text-[#f1f5f3] shadow-2xl my-auto"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 id="modal-title" className="text-xl font-black text-[#18352c]">
+            <h2 id="modal-title" className="text-xl font-black text-white">
               {title}
             </h2>
-            {description && <p className="mt-1 text-sm text-[#75857d]">{description}</p>}
+            {description && <p className="mt-1 text-xs text-zinc-400">{description}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="grid size-8 shrink-0 place-items-center rounded-full text-[#75857d] hover:bg-[#f2f4f2]"
+            className="grid size-8 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-[#1f372c] hover:text-white transition"
           >
             <X size={16} />
           </button>
         </div>
-        <div className="mt-4">{children}</div>
+        <div className="mt-5">{children}</div>
       </div>
     </div>
   );
