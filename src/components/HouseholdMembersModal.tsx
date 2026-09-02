@@ -37,7 +37,7 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
 
     try {
       await inviteByEmail(inviteEmail);
-      setStatusMsg({ text: `Convite registrado para ${inviteEmail}!`, type: 'success' });
+      setStatusMsg({ text: `Convite enviado por e-mail com sucesso para ${inviteEmail}!`, type: 'success' });
       setInviteEmail('');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Erro ao enviar convite.';
