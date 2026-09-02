@@ -13,22 +13,22 @@ import {
 import { db } from '@/lib/firebase';
 import type { Bill, NewBill } from '@/types';
 
-function billsCollection(uid: string) {
-  return collection(db, 'users', uid, 'bills');
+function billsCollection(householdId: string) {
+  return collection(db, 'households', householdId, 'bills');
 }
 
-export function useBills(uid: string | null) {
+export function useBills(householdId: string | null) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!uid) {
+    if (!householdId) {
       setBills([]);
       setIsLoading(false);
       return;
     }
     setIsLoading(true);
-    const billsQuery = query(billsCollection(uid), orderBy('due', 'asc'));
+    const billsQuery = query(billsCollection(householdId), orderBy('due', 'asc'));
     const unsubscribe = onSnapshot(billsQuery, (snapshot) => {
       setBills(
         snapshot.docs.map((docSnapshot) => {
@@ -46,18 +46,18 @@ export function useBills(uid: string | null) {
       setIsLoading(false);
     });
     return unsubscribe;
-  }, [uid]);
+  }, [householdId]);
 
   const actions = useMemo(
     () => ({
-      async addBill(uid: string, bill: NewBill) {
-        await addDoc(billsCollection(uid), { ...bill, createdAt: serverTimestamp() });
+      async addBill(householdId: string, bill: NewBill) {
+        await addDoc(billsCollection(householdId), { ...bill, createdAt: serverTimestamp() });
       },
-      async setPaid(uid: string, billId: string, paid: boolean) {
-        await updateDoc(doc(db, 'users', uid, 'bills', billId), { paid });
+      async setPaid(householdId: string, billId: string, paid: boolean) {
+        await updateDoc(doc(db, 'households', householdId, 'bills', billId), { paid });
       },
-      async removeBill(uid: string, billId: string) {
-        await deleteDoc(doc(db, 'users', uid, 'bills', billId));
+      async removeBill(householdId: string, billId: string) {
+        await deleteDoc(doc(db, 'households', householdId, 'bills', billId));
       },
     }),
     [],

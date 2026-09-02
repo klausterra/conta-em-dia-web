@@ -10,7 +10,7 @@ import {
   Settings,
   X,
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useHousehold } from '@/hooks/useHousehold';
 import { useBills } from '@/hooks/useBills';
 import { Sidebar } from '@/components/Sidebar';
 import { AddBillModal } from '@/components/AddBillModal';
@@ -71,8 +71,8 @@ function MobileNavButton({
 }
 
 export function Dashboard() {
-  const { user } = useAuth();
-  const { bills, addBill, setPaid } = useBills(user?.uid ?? null);
+  const { household } = useHousehold();
+  const { bills, addBill, setPaid } = useBills(household?.id ?? null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -91,14 +91,14 @@ export function Dashboard() {
   }
 
   async function handleTogglePaid(billId: string, paid: boolean) {
-    if (!user) return;
-    await setPaid(user.uid, billId, !paid);
+    if (!household) return;
+    await setPaid(household.id, billId, !paid);
     flash('Tudo certo! A conta foi atualizada.');
   }
 
   async function handleAddBill(bill: Parameters<typeof addBill>[1]) {
-    if (!user) return;
-    await addBill(user.uid, bill);
+    if (!household) return;
+    await addBill(household.id, bill);
     setIsModalOpen(false);
     flash('Nova conta adicionada. A gente te ajuda a lembrar.');
   }

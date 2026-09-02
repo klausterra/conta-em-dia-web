@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts","./src/components/addbillmodal.tsx","./src/components/dashboard.tsx","./src/components/loginscreen.tsx","./src/components/modal.tsx","./src/components/sidebar.tsx","./src/hooks/useauth.tsx","./src/hooks/usebills.ts","./src/lib/bills.ts","./src/lib/cn.ts","./src/lib/firebase.ts"],"version":"5.9.3"}

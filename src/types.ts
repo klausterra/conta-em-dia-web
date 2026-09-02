@@ -10,3 +10,9 @@ export type Bill = {
 };
 
 export type NewBill = Omit<Bill, 'id'>;
+
+export type Household = {
+  id: string;
+  name: string;
+  members: string[];
+};
