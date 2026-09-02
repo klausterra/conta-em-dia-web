@@ -158,6 +158,22 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     await updateDoc(doc(db, 'households', household.id), {
       invites: [...currentInvites.filter((i) => i.email !== cleanEmail), newInvite],
     });
+
+    // Enviar e-mail de convite de verdade via API Resend
+    try {
+      await fetch('/api/send-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          householdName: household.name,
+          inviterName: user.displayName || user.email || 'Morador',
+          inviteCode: household.id,
+        }),
+      });
+    } catch (err) {
+      console.warn('Aviso: falha de rede ao disparar o e-mail:', err);
+    }
   }
 
   async function cancelInvite(inviteId: string) {
