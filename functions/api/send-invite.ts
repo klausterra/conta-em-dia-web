@@ -2,8 +2,26 @@ interface Env {
   RESEND_API_KEY: string;
 }
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
+export async function onRequest(context: EventContext<Env, any, any>) {
   const { request, env } = context;
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
+  }
+
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Método não permitido.' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const body = (await request.json()) as {
