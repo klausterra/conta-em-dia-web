@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+body {
+  font-family:
+    'Nunito Sans',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Arial,
+    sans-serif;
+}
