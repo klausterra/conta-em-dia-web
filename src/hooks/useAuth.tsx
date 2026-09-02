@@ -6,8 +6,10 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth';
@@ -16,6 +18,9 @@ import { auth, googleProvider } from '@/lib/firebase';
 type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
+  isAuthenticating: boolean;
+  authError: string | null;
+  clearError: () => void;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -25,8 +30,18 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
+    void getRedirectResult(auth)
+      .catch((err: unknown) => {
+        const firebaseErr = err as { code?: string; message?: string };
+        if (firebaseErr.code && firebaseErr.code !== 'auth/popup-closed-by-user') {
+          setAuthError(firebaseErr.message ?? 'Falha ao concluir login.');
+        }
+      });
+
     const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
       setUser(nextUser);
       setIsLoading(false);
@@ -35,15 +50,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signInWithGoogle() {
-    await signInWithPopup(auth, googleProvider);
+    setIsAuthenticating(true);
+    setAuthError(null);
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (err: unknown) {
+      const firebaseErr = err as { code?: string; message?: string };
+      if (firebaseErr.code === 'auth/popup-blocked') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch {
+          setAuthError('O bloqueador de pop-ups impediu o login. Permita pop-ups no seu navegador.');
+        }
+      } else if (firebaseErr.code === 'auth/popup-closed-by-user') {
+        setAuthError(null);
+      } else if (firebaseErr.code === 'auth/unauthorized-domain') {
+        setAuthError('Este domínio ainda não foi autorizado no Firebase Authentication.');
+      } else {
+        setAuthError(firebaseErr.message ?? 'Não foi possível conectar com o Google. Tente novamente.');
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
   }
 
   async function signOut() {
     await firebaseSignOut(auth);
   }
 
+  function clearError() {
+    setAuthError(null);
+  }
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, signInWithGoogle, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticating,
+        authError,
+        clearError,
+        signInWithGoogle,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -54,3 +105,4 @@ export function useAuth(): AuthContextValue {
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
+
