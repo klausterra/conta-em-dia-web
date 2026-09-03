@@ -1,6 +1,6 @@
 import { AuthProvider, useAuth } from '@/hooks/useAuth';
 import { HouseholdProvider, useHousehold } from '@/hooks/useHousehold';
-import { LoginScreen } from '@/components/LoginScreen';
+import { LandingPage } from '@/components/landing/LandingPage';
 import { HouseholdSetup } from '@/components/HouseholdSetup';
 import { Dashboard } from '@/components/Dashboard';
 
@@ -34,7 +34,7 @@ function Gate() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) return <LoadingScreen />;
-  if (!user) return <LoginScreen />;
+  if (!user) return <LandingPage />;
 
   return (
     <HouseholdProvider>

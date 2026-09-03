@@ -4,7 +4,6 @@ import {
   Check,
   CircleDollarSign,
   Copy,
-  House,
   LineChart,
   LogOut,
   Users,
@@ -36,9 +35,11 @@ export function Sidebar({ activeTab, onSelectTab, onOpenMembers }: SidebarProps)
     <aside className="hidden w-64 shrink-0 flex-col border-r border-[#1a2e25] bg-[#0c1511] px-5 py-7 lg:flex">
       {/* Topo / Logo */}
       <div className="mb-8 flex items-center gap-3 px-2">
-        <div className="grid size-10 place-items-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-950">
-          <House size={20} />
-        </div>
+        <img
+          src="/app-logo.png"
+          alt="Logo"
+          className="size-10 rounded-xl object-cover shadow-lg shadow-emerald-950"
+        />
         <div className="min-w-0">
           <p className="truncate font-extrabold text-white leading-tight">{household?.name ?? 'Conta em Dia'}</p>
           <p className="text-[11px] text-zinc-400">Casa leve, cabeça leve.</p>
