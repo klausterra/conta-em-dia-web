@@ -1,13 +1,19 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { Bill, BillCategory } from '@/types';
 import { categoryLabels, money } from '@/lib/bills';
-import { PieChart, BarChart3 } from 'lucide-react';
+import { PieChart, BarChart3, Workflow, Activity, Layers } from 'lucide-react';
+import { SankeyChart } from '@/components/charts/SankeyChart';
+import { CashflowTimelineChart } from '@/components/charts/CashflowTimelineChart';
 
 type EvolutionChartsProps = {
   bills: Bill[];
 };
 
+type ChartView = 'all' | 'sankey' | 'timeline' | 'categories';
+
 export function EvolutionCharts({ bills }: EvolutionChartsProps) {
+  const [activeView, setActiveView] = useState<ChartView>('all');
+
   const stats = useMemo(() => {
     const total = bills.reduce((acc, b) => acc + b.value, 0);
     const paid = bills.filter((b) => b.paid).reduce((acc, b) => acc + b.value, 0);
@@ -65,13 +71,12 @@ export function EvolutionCharts({ bills }: EvolutionChartsProps) {
   // Cores para o Donut chart
   const categoryColors: Record<BillCategory, string> = {
     Energia: '#f59e0b', // amber-500
-    Agua: '#0ea5e9', // sky-500
-    Internet: '#8b5cf6', // violet-500
-    Telefone: '#f43f5e', // rose-500
-    Outros: '#71717a', // zinc-500
+    Agua: '#0ea5e9',    // sky-500
+    Internet: '#8b5cf6',// violet-500
+    Telefone: '#f43f5e',// rose-500
+    Outros: '#10b981',  // emerald-500
   };
 
-  // Cálculo dos segmentos SVG do Donut
   const radius = 65;
   const circumference = 2 * Math.PI * radius;
   let accumulatedOffset = 0;
@@ -98,135 +103,205 @@ export function EvolutionCharts({ bills }: EvolutionChartsProps) {
           <p className="mt-1 text-xs text-zinc-400">Falta pagar</p>
         </div>
         <div className="rounded-2xl border border-[#223d32] bg-[#14231d] p-5">
-          <p className="text-xs font-semibold text-zinc-400">Maior conta</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-zinc-400">Maior conta</p>
+            <span className="text-[10px] text-zinc-500 font-bold">Média: {money.format(stats.average)}</span>
+          </div>
           <p className="mt-2 text-2xl font-black text-white">{money.format(stats.highest.value)}</p>
           <p className="mt-1 truncate text-xs text-zinc-400">{stats.highest.name}</p>
         </div>
       </div>
 
-      {/* Grid com Gráficos */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Gráfico 1: Evolução das Despesas por Período */}
-        <section className="rounded-2xl border border-[#223d32] bg-[#14231d] p-6 shadow-[0_8px_30px_rgba(0,0,0,.2)]">
-          <div className="flex items-center justify-between border-b border-[#1f372c] pb-4">
-            <div>
-              <h2 className="flex items-center gap-2 text-base font-black text-white">
-                <BarChart3 size={18} className="text-emerald-400" />
-                Vencimentos ao longo do mês
-              </h2>
-              <p className="text-xs text-zinc-400">Volume financeiro distribuído por semanas</p>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5 text-zinc-300">
-                <span className="size-2.5 rounded-sm bg-emerald-500" /> Pago
-              </span>
-              <span className="flex items-center gap-1.5 text-zinc-300">
-                <span className="size-2.5 rounded-sm bg-zinc-600" /> Pendente
-              </span>
-            </div>
-          </div>
+      {/* Seletor de visualização dos gráficos */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#1c3328] pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveView('all')}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+            activeView === 'all'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'border border-[#223d32] bg-[#122019] text-zinc-300 hover:text-white hover:bg-[#183126]'
+          }`}
+        >
+          <Layers size={14} />
+          <span>Visão Completa</span>
+        </button>
 
-          <div className="mt-6 space-y-4">
-            {stats.periods.map((p, idx) => {
-              const totalPct = Math.round((p.total / stats.maxPeriodVal) * 100);
-              const paidPct = p.total > 0 ? Math.round((p.paid / p.total) * 100) : 0;
-              return (
-                <div key={idx} className="space-y-1.5">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-zinc-300">{p.label}</span>
-                    <span className="text-white">{money.format(p.total)}</span>
-                  </div>
-                  <div className="relative h-6 w-full overflow-hidden rounded-lg bg-[#0b1411]">
-                    <div
-                      className="absolute inset-y-0 left-0 rounded-lg bg-zinc-700/60 transition-all duration-500"
-                      style={{ width: `${totalPct}%` }}
-                    >
-                      <div
-                        className="h-full rounded-lg bg-emerald-500 transition-all duration-500"
-                        style={{ width: `${paidPct}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        <button
+          type="button"
+          onClick={() => setActiveView('sankey')}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+            activeView === 'sankey'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'border border-[#223d32] bg-[#122019] text-zinc-300 hover:text-white hover:bg-[#183126]'
+          }`}
+        >
+          <Workflow size={14} />
+          <span>Diagrama Sankey</span>
+        </button>
 
-        {/* Gráfico 2: Distribuição por Categoria (Donut SVG) */}
-        <section className="rounded-2xl border border-[#223d32] bg-[#14231d] p-6 shadow-[0_8px_30px_rgba(0,0,0,.2)]">
-          <div className="border-b border-[#1f372c] pb-4">
-            <h2 className="flex items-center gap-2 text-base font-black text-white">
-              <PieChart size={18} className="text-emerald-400" />
-              Gastos por Categoria
-            </h2>
-            <p className="text-xs text-zinc-400">Proporção do seu orçamento em cada tipo de despesa</p>
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveView('timeline')}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+            activeView === 'timeline'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'border border-[#223d32] bg-[#122019] text-zinc-300 hover:text-white hover:bg-[#183126]'
+          }`}
+        >
+          <Activity size={14} />
+          <span>Linha do Tempo</span>
+        </button>
 
-          {stats.categoryList.length === 0 ? (
-            <p className="py-12 text-center text-xs text-zinc-500">Nenhuma conta cadastrada ainda.</p>
-          ) : (
-            <div className="mt-6 flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-              {/* Donut SVG */}
-              <div className="relative size-40 shrink-0">
-                <svg className="size-full -rotate-90" viewBox="0 0 160 160">
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r={radius}
-                    fill="transparent"
-                    stroke="#1a2e25"
-                    strokeWidth="20"
-                  />
-                  {stats.categoryList.map((item, idx) => {
-                    const strokeDash = (item.total / stats.total) * circumference;
-                    const offset = accumulatedOffset;
-                    accumulatedOffset += strokeDash;
-                    return (
-                      <circle
-                        key={idx}
-                        cx="80"
-                        cy="80"
-                        r={radius}
-                        fill="transparent"
-                        stroke={categoryColors[item.category]}
-                        strokeWidth="20"
-                        strokeDasharray={`${strokeDash} ${circumference}`}
-                        strokeDashoffset={-offset}
-                        className="transition-all duration-700 hover:opacity-80"
-                      />
-                    );
-                  })}
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-[10px] uppercase font-bold text-zinc-400">Total</span>
-                  <span className="text-sm font-black text-white">{money.format(stats.total)}</span>
-                </div>
-              </div>
-
-              {/* Legenda de categorias */}
-              <div className="flex-1 space-y-2.5 w-full">
-                {stats.categoryList.map((item) => (
-                  <div key={item.category} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="size-3 rounded-full shrink-0"
-                        style={{ backgroundColor: categoryColors[item.category] }}
-                      />
-                      <span className="font-bold text-zinc-200">{item.label}</span>
-                      <span className="text-zinc-500">({item.count})</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="font-semibold text-zinc-400">{item.percent}%</span>
-                      <span className="font-black text-white">{money.format(item.total)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
+        <button
+          type="button"
+          onClick={() => setActiveView('categories')}
+          className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+            activeView === 'categories'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'border border-[#223d32] bg-[#122019] text-zinc-300 hover:text-white hover:bg-[#183126]'
+          }`}
+        >
+          <PieChart size={14} />
+          <span>Categorias & Semanas</span>
+        </button>
       </div>
+
+      {/* 1. DIAGRAMA SANKEY */}
+      {(activeView === 'all' || activeView === 'sankey') && (
+        <SankeyChart bills={bills} />
+      )}
+
+      {/* 2. LINHA DO TEMPO / CASHFLOW SPLINE */}
+      {(activeView === 'all' || activeView === 'timeline') && (
+        <CashflowTimelineChart bills={bills} />
+      )}
+
+      {/* 3. CATEGORIAS E SEMANAS */}
+      {(activeView === 'all' || activeView === 'categories') && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Gráfico 1: Evolução das Despesas por Período */}
+          <section className="rounded-2xl border border-[#223d32] bg-[#14231d] p-6 shadow-[0_8px_30px_rgba(0,0,0,.2)]">
+            <div className="flex items-center justify-between border-b border-[#1f372c] pb-4">
+              <div>
+                <h2 className="flex items-center gap-2 text-base font-black text-white">
+                  <BarChart3 size={18} className="text-emerald-400" />
+                  Vencimentos ao longo do mês
+                </h2>
+                <p className="text-xs text-zinc-400">Volume financeiro distribuído por semanas</p>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <span className="flex items-center gap-1.5 text-zinc-300">
+                  <span className="size-2.5 rounded-sm bg-emerald-500" /> Pago
+                </span>
+                <span className="flex items-center gap-1.5 text-zinc-300">
+                  <span className="size-2.5 rounded-sm bg-zinc-600" /> Pendente
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {stats.periods.map((p, idx) => {
+                const totalPct = Math.round((p.total / stats.maxPeriodVal) * 100);
+                const paidPct = p.total > 0 ? Math.round((p.paid / p.total) * 100) : 0;
+                return (
+                  <div key={idx} className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span className="text-zinc-300">{p.label}</span>
+                      <span className="text-white">{money.format(p.total)}</span>
+                    </div>
+                    <div className="relative h-6 w-full overflow-hidden rounded-lg bg-[#0b1411]">
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-lg bg-zinc-700/60 transition-all duration-500"
+                        style={{ width: `${totalPct}%` }}
+                      >
+                        <div
+                          className="h-full rounded-lg bg-emerald-500 transition-all duration-500"
+                          style={{ width: `${paidPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Gráfico 2: Distribuição por Categoria (Donut SVG) */}
+          <section className="rounded-2xl border border-[#223d32] bg-[#14231d] p-6 shadow-[0_8px_30px_rgba(0,0,0,.2)]">
+            <div className="border-b border-[#1f372c] pb-4">
+              <h2 className="flex items-center gap-2 text-base font-black text-white">
+                <PieChart size={18} className="text-emerald-400" />
+                Gastos por Categoria
+              </h2>
+              <p className="text-xs text-zinc-400">Proporção do seu orçamento em cada tipo de despesa</p>
+            </div>
+
+            {stats.categoryList.length === 0 ? (
+              <p className="py-12 text-center text-xs text-zinc-500">Nenhuma conta cadastrada ainda.</p>
+            ) : (
+              <div className="mt-6 flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+                {/* Donut SVG */}
+                <div className="relative size-40 shrink-0">
+                  <svg className="size-full -rotate-90" viewBox="0 0 160 160">
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r={radius}
+                      fill="transparent"
+                      stroke="#1a2e25"
+                      strokeWidth="20"
+                    />
+                    {stats.categoryList.map((item, idx) => {
+                      const strokeDash = (item.total / stats.total) * circumference;
+                      const offset = accumulatedOffset;
+                      accumulatedOffset += strokeDash;
+                      return (
+                        <circle
+                          key={idx}
+                          cx="80"
+                          cy="80"
+                          r={radius}
+                          fill="transparent"
+                          stroke={categoryColors[item.category]}
+                          strokeWidth="20"
+                          strokeDasharray={`${strokeDash} ${circumference}`}
+                          strokeDashoffset={-offset}
+                          className="transition-all duration-700 hover:opacity-80"
+                        />
+                      );
+                    })}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-[10px] uppercase font-bold text-zinc-400">Total</span>
+                    <span className="text-sm font-black text-white">{money.format(stats.total)}</span>
+                  </div>
+                </div>
+
+                {/* Legenda de categorias */}
+                <div className="flex-1 space-y-2.5 w-full">
+                  {stats.categoryList.map((item) => (
+                    <div key={item.category} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="size-3 rounded-full shrink-0"
+                          style={{ backgroundColor: categoryColors[item.category] }}
+                        />
+                        <span className="font-bold text-zinc-200">{item.label}</span>
+                        <span className="text-zinc-500">({item.count})</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="font-semibold text-zinc-400">{item.percent}%</span>
+                        <span className="font-black text-white">{money.format(item.total)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
     </div>
   );
 }
