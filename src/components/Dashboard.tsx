@@ -4,11 +4,13 @@ import {
   Camera,
   Check,
   LineChart,
+  LogOut,
   Plus,
   ReceiptText,
   Users,
   X,
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
 import { useBills } from '@/hooks/useBills';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -54,6 +56,7 @@ function Summary({
 }
 
 export function Dashboard() {
+  const { signOut } = useAuth();
   const { household } = useHousehold();
   const { bills, addBill, setPaid } = useBills(household?.id ?? null);
   useNotifications(bills); // verifica contas e notifica se vencendo hoje
@@ -141,7 +144,19 @@ export function Dashboard() {
                 className="flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white transition hover:bg-emerald-500 shadow-lg shadow-emerald-950/50"
               >
                 <Plus size={18} />
-                <span>Adicionar conta</span>
+                <span className="hidden sm:inline">Adicionar conta</span>
+                <span className="sm:hidden">Nova</span>
+              </button>
+
+              {/* Botão Sair / Logout */}
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                title="Sair da conta (Logout)"
+                className="flex h-11 items-center gap-1.5 rounded-xl border border-[#264436] bg-[#14231d] px-3.5 text-xs font-bold text-zinc-300 transition hover:border-rose-900/60 hover:bg-rose-950/40 hover:text-rose-300"
+              >
+                <LogOut size={16} />
+                <span className="hidden sm:inline">Sair</span>
               </button>
             </div>
           </header>

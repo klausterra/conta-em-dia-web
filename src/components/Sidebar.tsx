@@ -166,10 +166,11 @@ export function Sidebar({ activeTab, onSelectTab, onOpenMembers }: SidebarProps)
         <button
           type="button"
           onClick={() => void signOut()}
-          aria-label="Sair"
-          className="grid size-8 shrink-0 place-items-center rounded-lg text-zinc-400 hover:bg-[#183126] hover:text-white transition"
+          title="Sair da conta"
+          className="flex items-center gap-1.5 rounded-lg border border-[#244535] bg-[#14261e] px-2.5 py-1.5 text-xs font-bold text-zinc-300 hover:border-rose-900/60 hover:bg-rose-950/40 hover:text-rose-300 transition shrink-0"
         >
-          <LogOut size={16} />
+          <LogOut size={14} />
+          <span>Sair</span>
         </button>
       </div>
     </aside>
