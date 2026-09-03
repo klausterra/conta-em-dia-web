@@ -53,7 +53,7 @@ export async function onRequest(context: EventContext<Env, any, any>) {
 
     const hName = householdName || 'sua casa';
     const iName = inviterName || 'Alguém';
-    const appUrl = 'https://conta-em-dia-web.pages.dev';
+    const appUrl = `https://conta-em-dia-web.pages.dev/?code=${encodeURIComponent(inviteCode)}`;
 
     const html = `
 <!DOCTYPE html>

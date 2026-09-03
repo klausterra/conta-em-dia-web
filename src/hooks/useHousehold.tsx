@@ -29,6 +29,7 @@ type HouseholdContextValue = {
   cancelInvite: (inviteId: string) => Promise<void>;
   removeMember: (memberUid: string) => Promise<void>;
   leaveHousehold: () => Promise<void>;
+  renameHousehold: (name: string) => Promise<void>;
 };
 
 const HouseholdContext = createContext<HouseholdContextValue | null>(null);
@@ -206,6 +207,15 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     await setDoc(doc(db, 'users', user.uid), { householdId: null }, { merge: true });
   }
 
+  async function renameHousehold(name: string) {
+    if (!household) return;
+    const cleanName = name.trim();
+    if (!cleanName) return;
+    await updateDoc(doc(db, 'households', household.id), {
+      name: cleanName,
+    });
+  }
+
   return (
     <HouseholdContext.Provider
       value={{
@@ -217,6 +227,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         cancelInvite,
         removeMember,
         leaveHousehold,
+        renameHousehold,
       }}
     >
       {children}

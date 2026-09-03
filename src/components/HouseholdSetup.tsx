@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
-import { Users } from 'lucide-react';
+import { useState, useEffect, type FormEvent } from 'react';
+import { Users, MailCheck } from 'lucide-react';
 import { useHousehold } from '@/hooks/useHousehold';
 
 type Mode = 'choose' | 'create' | 'join';
@@ -7,8 +7,20 @@ type Mode = 'choose' | 'create' | 'join';
 export function HouseholdSetup() {
   const { createHousehold, joinHousehold } = useHousehold();
   const [mode, setMode] = useState<Mode>('choose');
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    try {
+      const code = localStorage.getItem('conta_em_dia_invite_code');
+      if (code) {
+        setPendingCode(code);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   async function handleCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -17,6 +29,7 @@ export function HouseholdSetup() {
     const name = String(new FormData(event.currentTarget).get('name'));
     try {
       await createHousehold(name);
+      localStorage.removeItem('conta_em_dia_invite_code');
     } catch {
       setError('Não deu para criar a casa. Tenta de novo.');
     } finally {
@@ -24,13 +37,12 @@ export function HouseholdSetup() {
     }
   }
 
-  async function handleJoin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleJoinCode(codeToJoin: string) {
     setError('');
     setIsSubmitting(true);
-    const code = String(new FormData(event.currentTarget).get('code'));
     try {
-      await joinHousehold(code);
+      await joinHousehold(codeToJoin);
+      localStorage.removeItem('conta_em_dia_invite_code');
     } catch (joinError) {
       setError(joinError instanceof Error ? joinError.message : 'Não foi possível entrar na casa.');
     } finally {
@@ -38,10 +50,56 @@ export function HouseholdSetup() {
     }
   }
 
+  async function handleJoin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const code = String(new FormData(event.currentTarget).get('code'));
+    await handleJoinCode(code);
+  }
+
   return (
     <main className="grid min-h-screen place-items-center bg-[#08100d] px-4 text-[#f1f5f3]">
       <div className="w-full max-w-sm rounded-2xl border border-[#1f372c] bg-[#122019] p-8 shadow-[0_12px_40px_rgba(0,0,0,.5)]">
-        {mode === 'choose' && (
+        {pendingCode ? (
+          <div className="text-center">
+            <div className="mx-auto grid size-12 place-items-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-950">
+              <MailCheck size={24} />
+            </div>
+            <h1 className="mt-4 text-xl font-black text-white">Convite recebido!</h1>
+            <p className="mt-1 text-xs text-zinc-300">
+              Você foi convidado(a) para fazer parte de uma casa no Conta em Dia.
+            </p>
+
+            <div className="mt-5 rounded-xl border border-[#234334] bg-[#0c1612] p-4 text-center">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Código de convite</p>
+              <p className="mt-1 font-mono text-2xl font-black tracking-widest text-emerald-400">{pendingCode}</p>
+            </div>
+
+            {error && <p className="mt-3 text-xs text-rose-400">{error}</p>}
+
+            <div className="mt-6 space-y-3">
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={() => handleJoinCode(pendingCode)}
+                className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-emerald-500 disabled:opacity-60 shadow-lg shadow-emerald-950/50"
+              >
+                {isSubmitting ? 'Entrando...' : 'Entrar na casa agora'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingCode(null);
+                  try {
+                    localStorage.removeItem('conta_em_dia_invite_code');
+                  } catch {}
+                }}
+                className="w-full text-center text-xs font-bold text-zinc-400 hover:text-zinc-200 transition"
+              >
+                Prefiro criar uma nova casa
+              </button>
+            </div>
+          </div>
+        ) : mode === 'choose' ? (
           <div className="text-center">
             <div className="mx-auto grid size-12 place-items-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-950">
               <Users size={24} />
@@ -65,9 +123,7 @@ export function HouseholdSetup() {
               </button>
             </div>
           </div>
-        )}
-
-        {mode === 'create' && (
+        ) : mode === 'create' ? (
           <form onSubmit={handleCreate} className="space-y-4">
             <h1 className="text-xl font-black text-white">Dar um nome pra casa</h1>
             <input
@@ -82,7 +138,7 @@ export function HouseholdSetup() {
               disabled={isSubmitting}
               className="h-11 w-full rounded-xl bg-emerald-600 text-sm font-bold text-white transition hover:bg-emerald-500 disabled:opacity-60 shadow-lg shadow-emerald-950/50"
             >
-              Criar casa
+              {isSubmitting ? 'Criando...' : 'Criar casa'}
             </button>
             <button
               type="button"
@@ -92,9 +148,7 @@ export function HouseholdSetup() {
               Voltar
             </button>
           </form>
-        )}
-
-        {mode === 'join' && (
+        ) : (
           <form onSubmit={handleJoin} className="space-y-4">
             <h1 className="text-xl font-black text-white">Entrar com o código</h1>
             <p className="text-xs text-zinc-400">Peça o código de convite para quem já cadastrou a casa.</p>
@@ -110,7 +164,7 @@ export function HouseholdSetup() {
               disabled={isSubmitting}
               className="h-11 w-full rounded-xl bg-emerald-600 text-sm font-bold text-white transition hover:bg-emerald-500 disabled:opacity-60 shadow-lg shadow-emerald-950/50"
             >
-              Entrar na casa
+              {isSubmitting ? 'Entrando...' : 'Entrar na casa'}
             </button>
             <button
               type="button"

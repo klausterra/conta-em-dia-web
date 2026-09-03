@@ -9,6 +9,8 @@ import {
   Users,
   LogOut,
   AlertCircle,
+  Pencil,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { useHousehold } from '@/hooks/useHousehold';
@@ -21,11 +23,24 @@ type HouseholdMembersModalProps = {
 
 export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalProps) {
   const { user } = useAuth();
-  const { household, inviteByEmail, cancelInvite, removeMember, leaveHousehold } = useHousehold();
+  const {
+    household,
+    inviteByEmail,
+    cancelInvite,
+    removeMember,
+    leaveHousehold,
+    renameHousehold,
+    joinHousehold,
+  } = useHousehold();
   const [inviteEmail, setInviteEmail] = useState('');
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [isSwitchingHouse, setIsSwitchingHouse] = useState(false);
+  const [switchCode, setSwitchCode] = useState('');
 
   const isOwner = household?.ownerUid === user?.uid;
 
@@ -47,6 +62,35 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
     }
   }
 
+  async function handleRename(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    try {
+      await renameHousehold(newName.trim());
+      setIsEditingName(false);
+      setStatusMsg({ text: 'Nome da casa atualizado com sucesso!', type: 'success' });
+    } catch {
+      setStatusMsg({ text: 'Não foi possível renomear a casa.', type: 'error' });
+    }
+  }
+
+  async function handleSwitch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!switchCode.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await joinHousehold(switchCode.trim().toUpperCase());
+      setIsSwitchingHouse(false);
+      setSwitchCode('');
+      setStatusMsg({ text: 'Você entrou na nova casa com sucesso!', type: 'success' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Código inválido.';
+      setStatusMsg({ text: msg, type: 'error' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   async function handleCopyCode() {
     if (!household) return;
     await navigator.clipboard.writeText(household.id);
@@ -57,7 +101,7 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
   function handleShareWhatsapp() {
     if (!household) return;
     const text = encodeURIComponent(
-      `Oi! Estou te convidando para dividir as contas da nossa casa no Conta em Dia. Acesse https://conta-em-dia-web.pages.dev e use o código: ${household.id}`,
+      `Oi! Estou te convidando para dividir as contas da nossa casa no Conta em Dia. Acesse https://conta-em-dia-web.pages.dev/?code=${household.id} e use o código: ${household.id}`,
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   }
@@ -70,6 +114,52 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
       description={`Gerencie quem tem acesso às contas de ${household?.name || 'sua casa'}.`}
     >
       <div className="space-y-6">
+        {/* Nome da casa com opção de renomear */}
+        <div className="flex items-center justify-between rounded-xl border border-[#223d32] bg-[#122019] p-3.5">
+          {isEditingName ? (
+            <form onSubmit={handleRename} className="flex flex-1 items-center gap-2">
+              <input
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder={household?.name}
+                required
+                className="h-9 flex-1 rounded-lg border border-[#2a4d3e] bg-[#0c1612] px-2.5 text-xs text-white outline-none focus:border-emerald-500"
+              />
+              <button
+                type="submit"
+                className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+              >
+                Salvar
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditingName(false)}
+                className="text-xs text-zinc-400 hover:text-white px-2"
+              >
+                Cancelar
+              </button>
+            </form>
+          ) : (
+            <>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Nome da Casa</p>
+                <p className="text-sm font-black text-white">{household?.name || 'Minha Casa'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setNewName(household?.name || '');
+                  setIsEditingName(true);
+                }}
+                className="flex items-center gap-1.5 rounded-lg border border-[#244535] bg-[#172b22] px-2.5 py-1.5 text-xs font-bold text-zinc-300 hover:bg-[#1f3a2e] hover:text-white"
+              >
+                <Pencil size={13} />
+                <span>Renomear</span>
+              </button>
+            </>
+          )}
+        </div>
+
         {/* Formulário de convite por e-mail */}
         <form onSubmit={handleInvite} className="space-y-3">
           <label className="block text-xs font-bold text-zinc-300">
@@ -89,7 +179,7 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white transition hover:bg-emerald-500 disabled:opacity-70"
+                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white transition hover:bg-emerald-500 disabled:opacity-70 shadow-lg shadow-emerald-950/40"
               >
                 <UserPlus size={15} />
                 <span>{isSubmitting ? 'Enviando…' : 'Convidar'}</span>
@@ -111,31 +201,33 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
           )}
         </form>
 
-        {/* Compartilhamento rápido por link e WhatsApp */}
-        <div className="rounded-xl border border-[#223d32] bg-[#14231d] p-4">
-          <div className="flex items-center justify-between">
+        {/* Código de convite e WhatsApp */}
+        <div className="rounded-xl border border-[#223d32] bg-[#122019] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-bold text-zinc-200">Código de convite da casa</p>
-              <p className="mt-1 font-mono text-sm font-black tracking-wider text-emerald-400">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                Código de convite da casa
+              </p>
+              <p className="mt-0.5 font-mono text-base font-black tracking-widest text-emerald-400">
                 {household?.id}
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => void handleCopyCode()}
-                className="flex items-center gap-1.5 rounded-lg border border-[#223d32] bg-[#192b23] px-3 py-2 text-xs font-bold text-zinc-300 hover:bg-[#20362c]"
+                onClick={handleCopyCode}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#244535] bg-[#172b22] px-3 py-2 text-xs font-bold text-zinc-200 transition hover:bg-[#1f3a2e] sm:flex-initial"
               >
                 {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                <span>{copied ? 'Copiado' : 'Copiar'}</span>
+                <span>{copied ? 'Copiado!' : 'Copiar'}</span>
               </button>
               <button
                 type="button"
                 onClick={handleShareWhatsapp}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-700/70 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-600"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-600 sm:flex-initial"
               >
                 <Share2 size={14} />
-                <span className="hidden sm:inline">WhatsApp</span>
+                <span>WhatsApp</span>
               </button>
             </div>
           </div>
@@ -143,39 +235,37 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
 
         {/* Lista de moradores atuais */}
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-400">
-              <Users size={14} className="text-emerald-400" />
-              Moradores atuais ({household?.members.length ?? 0})
-            </h3>
-          </div>
+          <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-zinc-400">
+            <Users size={14} />
+            <span>Moradores atuais ({household?.members?.length || 0})</span>
+          </h3>
 
           <div className="divide-y divide-[#1c3328] rounded-xl border border-[#223d32] bg-[#14231d]">
             {household?.memberProfiles && household.memberProfiles.length > 0 ? (
               household.memberProfiles.map((member) => (
                 <div key={member.uid} className="flex items-center justify-between p-3.5">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3">
                     {member.photoURL ? (
                       <img
                         src={member.photoURL}
                         alt={member.displayName}
-                        className="size-9 rounded-full object-cover border border-[#223d32]"
+                        className="size-9 rounded-full border border-emerald-600/40 object-cover"
                       />
                     ) : (
-                      <div className="grid size-9 place-items-center rounded-full bg-[#1e382c] font-black text-xs text-emerald-300">
-                        {member.displayName.charAt(0).toUpperCase()}
+                      <div className="grid size-9 place-items-center rounded-full bg-emerald-950 text-xs font-bold text-emerald-400 border border-emerald-800/40">
+                        {member.displayName.slice(0, 2).toUpperCase()}
                       </div>
                     )}
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-xs font-bold text-white">{member.displayName}</p>
                         {member.uid === user?.uid && (
-                          <span className="rounded-full bg-emerald-950 px-2 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-800/60">
+                          <span className="rounded bg-emerald-950 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-800/50">
                             Você
                           </span>
                         )}
                         {member.isOwner && (
-                          <span className="rounded-full bg-amber-950 px-2 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-800/60">
+                          <span className="rounded bg-amber-950 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-800/50">
                             Admin
                           </span>
                         )}
@@ -232,21 +322,61 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
           </div>
         )}
 
-        {/* Sair da casa */}
+        {/* Trocar de casa ou entrar com outro código */}
         <div className="border-t border-[#1f372c] pt-4">
-          <button
-            type="button"
-            onClick={async () => {
-              if (window.confirm('Tem certeza de que deseja sair desta casa?')) {
-                await leaveHousehold();
-                onClose();
-              }
-            }}
-            className="flex items-center gap-2 text-xs font-bold text-rose-400 hover:text-rose-300 transition"
-          >
-            <LogOut size={14} />
-            <span>Sair desta casa</span>
-          </button>
+          {isSwitchingHouse ? (
+            <form onSubmit={handleSwitch} className="space-y-3 rounded-xl bg-[#0c1612] p-3.5 border border-[#223d32]">
+              <p className="text-xs font-bold text-zinc-200">Entrar em outra casa com código</p>
+              <input
+                value={switchCode}
+                onChange={(e) => setSwitchCode(e.target.value)}
+                placeholder="Ex.: 7K9QXPZ"
+                required
+                className="h-10 w-full rounded-xl border border-[#223d32] bg-[#14231d] px-3 text-center text-xs uppercase tracking-widest text-white outline-none focus:border-emerald-500 font-mono font-bold"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-500"
+                >
+                  Entrar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSwitchingHouse(false)}
+                  className="px-3 text-xs text-zinc-400 hover:text-white"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsSwitchingHouse(true)}
+                className="flex items-center gap-1.5 text-xs font-bold text-zinc-400 hover:text-emerald-400 transition"
+              >
+                <ArrowRightLeft size={14} />
+                <span>Entrar em outra casa com código</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('Tem certeza de que deseja sair desta casa?')) {
+                    await leaveHousehold();
+                    onClose();
+                  }
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold text-rose-400 hover:text-rose-300 transition"
+              >
+                <LogOut size={14} />
+                <span>Sair da casa</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </Modal>
