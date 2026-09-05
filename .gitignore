@@ -8,3 +8,24 @@ dist
 *.tsbuildinfo
 .wrangler
 
+# Android TWA / Bubblewrap
+android/android.keystore
+android/.keystore-credentials.local
+android/app/
+android/gradle/
+android/gradlew
+android/gradlew.bat
+android/settings.gradle
+android/build.gradle
+android/gradle.properties
+android/store_icon.png
+android/splash.png
+android/notification_icon.png
+android/*.apk
+android/*.aab
+android/*.idsig
+android/manifest-checksum.txt
+android/.gradle/
+android/build/
+android/local.properties
+

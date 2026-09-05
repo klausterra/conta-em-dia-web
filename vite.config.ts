@@ -11,10 +11,13 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
+        'favicon.png',
         'favicon.svg',
         'apple-touch-icon.png',
         'pwa-192x192.png',
         'pwa-512x512.png',
+        'maskable-icon-512x512.png',
+        'app-logo.png',
       ],
       manifest: {
         name: 'Conta em Dia',
