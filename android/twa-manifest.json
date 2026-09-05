@@ -1,0 +1,42 @@
+{
+  "packageId": "br.com.contaemdia.app",
+  "host": "conta-em-dia-web.pages.dev",
+  "name": "Conta em Dia",
+  "launcherName": "Conta em Dia",
+  "display": "standalone",
+  "themeColor": "#08100D",
+  "themeColorDark": "#08100D",
+  "navigationColor": "#08100D",
+  "navigationColorDark": "#08100D",
+  "navigationDividerColor": "#08100D",
+  "navigationDividerColorDark": "#08100D",
+  "backgroundColor": "#08100D",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://conta-em-dia-web.pages.dev/pwa-512x512.png",
+  "maskableIconUrl": "https://conta-em-dia-web.pages.dev/maskable-icon-512x512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "contaemdia"
+  },
+  "appVersionCode": 1,
+  "appVersion": "1.0.0",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://conta-em-dia-web.pages.dev/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://conta-em-dia-web.pages.dev/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

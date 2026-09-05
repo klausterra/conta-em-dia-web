@@ -30,6 +30,15 @@ npm run build   # gera ./dist
    - `VITE_FIREBASE_APP_ID`
 5. Depois do primeiro deploy, adicione o domínio do Cloudflare Pages (ex.: `conta-em-dia-web.pages.dev` e o domínio customizado, se houver) em **Firebase Console → Authentication → Settings → Authorized domains**, senão o login com Google é bloqueado.
 
+## Android (Play Store / TWA)
+
+O app Android é um Trusted Web Activity (Bubblewrap) em `android/`, package `br.com.contaemdia.app`, abrindo a PWA em produção.
+
+1. Publique o site com `public/.well-known/assetlinks.json` (Digital Asset Links).
+2. Gere o AAB: veja `android/README.md`.
+3. Envie `android/app-release-bundle.aab` na Play Console.
+4. Depois do Play App Signing, acrescente o SHA-256 da Google em `assetlinks.json` e redeploy.
+
 ## Dados
 
 Cada usuário autenticado tem suas contas em `users/{uid}/bills/{billId}` no Firestore. As regras de segurança (`firestore.rules`, no outro repo) só permitem que um usuário leia/escreva os próprios documentos.
