@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
   Camera,
@@ -7,6 +7,7 @@ import {
   LogOut,
   Plus,
   ReceiptText,
+  Sparkles,
   Users,
   X,
 } from 'lucide-react';
@@ -14,13 +15,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useHousehold } from '@/hooks/useHousehold';
 import { useBills } from '@/hooks/useBills';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useSubscription } from '@/hooks/useSubscription';
 import { Sidebar } from '@/components/Sidebar';
 import { AddBillModal } from '@/components/AddBillModal';
 import { ScanBillModal } from '@/components/ScanBillModal';
 import { HouseholdMembersModal } from '@/components/HouseholdMembersModal';
+import { SubscribeModal } from '@/components/SubscribeModal';
 import { EvolutionCharts } from '@/components/EvolutionCharts';
 import { categoryLabels, categoryStyles, money } from '@/lib/bills';
-import type { ScannedBillData } from '@/types';
+import { SUBSCRIPTION } from '@/lib/subscription';
+import type { Bill, NewBill, ScannedBillData } from '@/types';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   weekday: 'long',
@@ -56,17 +60,79 @@ function Summary({
 }
 
 export function Dashboard() {
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
   const { household } = useHousehold();
-  const { bills, addBill, setPaid } = useBills(household?.id ?? null);
-  useNotifications(bills); // verifica contas e notifica se vencendo hoje
+  const { bills, addBill, updateBill, setPaid } = useBills(household?.id ?? null);
+  const {
+    isPro,
+    billing,
+    isStartingCheckout,
+    playAvailable,
+    error: billingError,
+    startCheckout,
+    confirmCheckoutSession,
+    clearError,
+  } = useSubscription();
+  useNotifications(bills);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'charts'>('overview');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isScanModalOpen, setIsScanModalOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isSubscribeOpen, setIsSubscribeOpen] = useState(false);
   const [scannedData, setScannedData] = useState<ScannedBillData | null>(null);
+  const [editingBill, setEditingBill] = useState<Bill | null>(null);
   const [notice, setNotice] = useState('');
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const billingFlag = params.get('billing');
+    const sessionId = params.get('session_id');
+
+    async function finishBilling() {
+      if (billingFlag === 'success' && sessionId) {
+        const ok = await confirmCheckoutSession(sessionId);
+        flash(
+          ok
+            ? `Assinatura ativa: ${SUBSCRIPTION.trialDays} dias grátis começaram.`
+            : 'Pagamento recebido, mas falhou ao gravar o status. Atualize a página.',
+        );
+      } else if (billingFlag === 'success') {
+        // Payment Link (sem session_id): ativa trial local até a secret Stripe estar no Pages
+        const trialEnds = new Date();
+        trialEnds.setDate(trialEnds.getDate() + SUBSCRIPTION.trialDays);
+        if (user) {
+          const { doc, setDoc } = await import('firebase/firestore');
+          const { db } = await import('@/lib/firebase');
+          await setDoc(
+            doc(db, 'users', user.uid),
+            {
+              billing: {
+                status: 'trialing',
+                plan: 'pro',
+                trialEndsAt: trialEnds.toISOString(),
+                updatedAt: new Date().toISOString(),
+              },
+            },
+            { merge: true },
+          );
+        }
+        flash(`Trial Pro de ${SUBSCRIPTION.trialDays} dias ativado.`);
+      } else if (billingFlag === 'cancel') {
+        flash('Checkout cancelado. Você pode assinar quando quiser.');
+      } else {
+        return;
+      }
+
+      params.delete('billing');
+      params.delete('session_id');
+      const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
+      window.history.replaceState({}, '', next);
+    }
+
+    void finishBilling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirmCheckoutSession, user]);
 
   const pending = useMemo(() => bills.filter((bill) => !bill.paid), [bills]);
   const totalPending = useMemo(() => pending.reduce((sum, bill) => sum + bill.value, 0), [pending]);
@@ -79,7 +145,16 @@ export function Dashboard() {
 
   function flash(text: string) {
     setNotice(text);
-    window.setTimeout(() => setNotice(''), 2800);
+    window.setTimeout(() => setNotice(''), 3200);
+  }
+
+  function requirePro(action: () => void) {
+    if (isPro) {
+      action();
+      return;
+    }
+    clearError();
+    setIsSubscribeOpen(true);
   }
 
   async function handleTogglePaid(billId: string, paid: boolean) {
@@ -88,8 +163,16 @@ export function Dashboard() {
     flash('Tudo certo! A conta foi atualizada.');
   }
 
-  async function handleAddBill(bill: Parameters<typeof addBill>[1]) {
+  async function handleSaveBill(bill: NewBill) {
     if (!household) return;
+
+    if (editingBill) {
+      await updateBill(household.id, editingBill.id, bill);
+      setEditingBill(null);
+      flash('Valor e dados da conta atualizados.');
+      return;
+    }
+
     await addBill(household.id, bill);
     setIsAddModalOpen(false);
     setScannedData(null);
@@ -97,9 +180,15 @@ export function Dashboard() {
   }
 
   function handleScannedCode(data: ScannedBillData) {
+    setEditingBill(null);
     setScannedData(data);
     setIsScanModalOpen(false);
     setIsAddModalOpen(true);
+  }
+
+  function openEditBill(bill: Bill) {
+    setScannedData(null);
+    setEditingBill(bill);
   }
 
   const today = dateFormatter.format(new Date());
@@ -124,10 +213,30 @@ export function Dashboard() {
             </div>
 
             <div className="flex items-center gap-2.5">
+              {!isPro && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearError();
+                    setIsSubscribeOpen(true);
+                  }}
+                  className="flex h-11 items-center gap-2 rounded-xl border border-emerald-700/60 bg-emerald-950/50 px-4 text-xs font-bold text-emerald-300 transition hover:bg-emerald-900/50"
+                >
+                  <Sparkles size={16} />
+                  <span className="hidden sm:inline">Pro · {SUBSCRIPTION.trialDays} dias grátis</span>
+                  <span className="sm:hidden">Pro</span>
+                </button>
+              )}
+              {isPro && (
+                <span className="hidden h-11 items-center rounded-xl border border-emerald-800/50 bg-emerald-950/40 px-3 text-[11px] font-bold text-emerald-300 sm:flex">
+                  {billing.status === 'trialing' ? 'Trial Pro ativo' : 'Pro ativo'}
+                </span>
+              )}
+
               {/* Botão Escanear */}
               <button
                 type="button"
-                onClick={() => setIsScanModalOpen(true)}
+                onClick={() => requirePro(() => setIsScanModalOpen(true))}
                 className="flex h-11 items-center gap-2 rounded-xl border border-[#264436] bg-[#14231d] px-4 text-xs font-bold text-emerald-300 transition hover:bg-[#1a3127]"
               >
                 <Camera size={17} />
@@ -138,6 +247,7 @@ export function Dashboard() {
               <button
                 type="button"
                 onClick={() => {
+                  setEditingBill(null);
                   setScannedData(null);
                   setIsAddModalOpen(true);
                 }}
@@ -177,7 +287,7 @@ export function Dashboard() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('charts')}
+              onClick={() => requirePro(() => setActiveTab('charts'))}
               className={`flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold transition ${
                 activeTab === 'charts'
                   ? 'bg-[#183126] text-emerald-400'
@@ -257,23 +367,33 @@ export function Dashboard() {
                             bill.paid ? 'opacity-45' : ''
                           }`}
                         >
-                          <div className={`grid size-11 shrink-0 place-items-center rounded-xl ${categoryStyles[bill.category].tone}`}>
-                            <Icon size={20} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className={`truncate text-sm font-extrabold text-white ${bill.paid ? 'line-through text-zinc-400' : ''}`}>
-                              {bill.name}
-                            </h3>
-                            <p className="mt-0.5 text-xs text-zinc-400">
-                              Vence dia {bill.due} • {categoryLabels[bill.category]}
-                            </p>
-                          </div>
-                          <p className="text-sm font-black text-white">{money.format(bill.value)}</p>
+                          <button
+                            type="button"
+                            onClick={() => openEditBill(bill)}
+                            className="flex min-w-0 flex-1 items-center gap-3 text-left sm:gap-4"
+                            aria-label={`Editar ${bill.name}`}
+                          >
+                            <div className={`grid size-11 shrink-0 place-items-center rounded-xl ${categoryStyles[bill.category].tone}`}>
+                              <Icon size={20} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className={`truncate text-sm font-extrabold text-white ${bill.paid ? 'line-through text-zinc-400' : ''}`}>
+                                {bill.name}
+                              </h3>
+                              <p className="mt-0.5 text-xs text-zinc-400">
+                                Vence dia {bill.due} • {categoryLabels[bill.category]}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-sm font-black text-white">{money.format(bill.value)}</p>
+                              <p className="mt-0.5 text-[10px] font-bold text-emerald-400/90">Editar</p>
+                            </div>
+                          </button>
                           <button
                             type="button"
                             onClick={() => void handleTogglePaid(bill.id, bill.paid)}
                             aria-label={bill.paid ? `Marcar ${bill.name} como pendente` : `Marcar ${bill.name} como paga`}
-                            className={`grid size-9 place-items-center rounded-full border transition ${
+                            className={`grid size-9 shrink-0 place-items-center rounded-full border transition ${
                               bill.paid
                                 ? 'border-emerald-500 bg-emerald-950 text-emerald-400'
                                 : 'border-zinc-700 text-transparent hover:border-emerald-500 hover:text-emerald-400'
@@ -328,7 +448,7 @@ export function Dashboard() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('charts')}
+          onClick={() => requirePro(() => setActiveTab('charts'))}
           className={`flex min-w-12 flex-col items-center gap-1 text-[10px] font-bold ${
             activeTab === 'charts' ? 'text-emerald-400' : 'text-zinc-500'
           }`}
@@ -340,7 +460,7 @@ export function Dashboard() {
         {/* Botão Central de Escanear */}
         <button
           type="button"
-          onClick={() => setIsScanModalOpen(true)}
+          onClick={() => requirePro(() => setIsScanModalOpen(true))}
           className="-mt-7 grid size-13 place-items-center rounded-full border-4 border-[#08100d] bg-emerald-600 text-white shadow-lg"
           aria-label="Escanear conta"
         >
@@ -359,6 +479,7 @@ export function Dashboard() {
         <button
           type="button"
           onClick={() => {
+            setEditingBill(null);
             setScannedData(null);
             setIsAddModalOpen(true);
           }}
@@ -386,13 +507,15 @@ export function Dashboard() {
 
       {/* Modais */}
       <AddBillModal
-        open={isAddModalOpen}
+        open={isAddModalOpen || Boolean(editingBill)}
         onClose={() => {
           setIsAddModalOpen(false);
           setScannedData(null);
+          setEditingBill(null);
         }}
-        onSubmit={handleAddBill}
+        onSubmit={handleSaveBill}
         initialData={scannedData}
+        editingBill={editingBill}
       />
 
       <ScanBillModal
@@ -404,6 +527,15 @@ export function Dashboard() {
       <HouseholdMembersModal
         open={isMembersModalOpen}
         onClose={() => setIsMembersModalOpen(false)}
+      />
+
+      <SubscribeModal
+        open={isSubscribeOpen}
+        onClose={() => setIsSubscribeOpen(false)}
+        isStarting={isStartingCheckout}
+        error={billingError}
+        playBilling={playAvailable}
+        onSubscribe={() => void startCheckout(household?.id)}
       />
     </main>
   );

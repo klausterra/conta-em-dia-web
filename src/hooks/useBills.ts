@@ -40,6 +40,8 @@ export function useBills(householdId: string | null) {
             value: data.value,
             due: data.due,
             paid: data.paid,
+            barcode: data.barcode,
+            notes: data.notes,
           } satisfies Bill;
         }),
       );
@@ -51,7 +53,29 @@ export function useBills(householdId: string | null) {
   const actions = useMemo(
     () => ({
       async addBill(householdId: string, bill: NewBill) {
-        await addDoc(billsCollection(householdId), { ...bill, createdAt: serverTimestamp() });
+        const data: Record<string, unknown> = {
+          name: bill.name,
+          category: bill.category,
+          value: bill.value,
+          due: bill.due,
+          paid: bill.paid ?? false,
+          createdAt: serverTimestamp(),
+        };
+        if (bill.barcode) data.barcode = bill.barcode;
+        if (bill.notes) data.notes = bill.notes;
+        await addDoc(billsCollection(householdId), data);
+      },
+      async updateBill(householdId: string, billId: string, bill: NewBill) {
+        const data: Record<string, unknown> = {
+          name: bill.name,
+          category: bill.category,
+          value: bill.value,
+          due: bill.due,
+          paid: bill.paid ?? false,
+        };
+        data.barcode = bill.barcode || null;
+        data.notes = bill.notes || null;
+        await updateDoc(doc(db, 'households', householdId, 'bills', billId), data);
       },
       async setPaid(householdId: string, billId: string, paid: boolean) {
         await updateDoc(doc(db, 'households', householdId, 'bills', billId), { paid });

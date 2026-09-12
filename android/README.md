@@ -6,6 +6,7 @@ Trusted Web Activity gerado com [Bubblewrap](https://github.com/GoogleChromeLabs
 
 - **Package:** `br.com.contaemdia.app`
 - **Versão:** ver `twa-manifest.json` (`appVersion` / `appVersionCode`)
+- **minSdk:** 23 (exigido pela lib Play Billing do Android Browser Helper)
 
 ## Pré-requisitos
 
@@ -75,3 +76,44 @@ https://digitalassetlinks.googleapis.com/v1/statements:list?source.web.site=http
 ## Bump de versão
 
 Edite `appVersion` e `appVersionCode` em `twa-manifest.json`, rode `update --skipVersionUpgrade` + `build` de novo.
+
+## Play Billing (assinatura Pro)
+
+No app da Play, cobrança digital **precisa** ser via Google Play Billing (Stripe só no site/PWA fora da loja).
+
+### 1. Produto na Play Console
+
+1. Monetizar → Produtos → Assinaturas → criar `pro_familia`
+2. Base plan mensal **R$ 5,99** + trial **7 dias**
+3. Marcar o base plan como *Use for deprecated billing methods / backwards compatible* (Digital Goods só vende esse)
+
+### 2. Bubblewrap com billing
+
+Em `twa-manifest.json` já está:
+
+```json
+"features": { "playBilling": { "enabled": true } },
+"alphaDependencies": { "enabled": true }
+```
+
+Regenere o projeto e publique AAB novo:
+
+```powershell
+cd android
+npx --yes @bubblewrap/cli update --skipVersionUpgrade
+npx --yes @bubblewrap/cli build
+```
+
+Suba o `.aab` na faixa de teste (precisa de release publicada para o checkout Play funcionar).
+
+### 3. Service account (validação)
+
+1. Google Cloud → service account com JSON
+2. Play Console → Usuários e permissões → convidar o e-mail da SA com permissão **Ver dados financeiros / gerenciar pedidos**
+3. Cloudflare Pages → Secret `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` = conteúdo do JSON
+4. Opcionais: `PLAY_PACKAGE_NAME`, `PLAY_PRODUCT_ID`
+
+### 4. Fluxo no app
+
+- Dentro do TWA: `Digital Goods` + `Payment Request` → `/api/confirm-play-purchase`
+- Fora do TWA (Chrome/site): Stripe (como antes)

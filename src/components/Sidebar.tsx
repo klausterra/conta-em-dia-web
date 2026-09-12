@@ -149,8 +149,9 @@ export function Sidebar({ activeTab, onSelectTab, onOpenMembers }: SidebarProps)
       <div className="mt-4 flex items-center justify-between border-t border-[#1a2e25] pt-4 px-1">
         <div className="flex items-center gap-2.5 min-w-0">
           {user?.photoURL ? (
-            <img
-              src={user.photoURL}
+              <img
+                src={user.photoURL}
+                referrerPolicy="no-referrer"
               alt=""
               className="size-7 rounded-full object-cover border border-[#223d32]"
             />

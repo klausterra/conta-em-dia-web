@@ -1,58 +1,122 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Modal } from '@/components/Modal';
-import type { BillCategory, NewBill, ScannedBillData } from '@/types';
+import type { Bill, BillCategory, NewBill, ScannedBillData } from '@/types';
 
 type AddBillModalProps = {
   open: boolean;
   onClose: () => void;
-  onSubmit: (bill: NewBill) => void;
+  onSubmit: (bill: NewBill) => Promise<void> | void;
   initialData?: ScannedBillData | null;
+  editingBill?: Bill | null;
 };
 
 const categories: BillCategory[] = ['Energia', 'Agua', 'Internet', 'Telefone', 'Outros'];
 
-export function AddBillModal({ open, onClose, onSubmit, initialData }: AddBillModalProps) {
+function parseCurrency(raw: string): number {
+  const clean = raw.replace(/[^\d.,]/g, '').trim();
+  if (!clean) return NaN;
+  if (clean.includes(',')) {
+    return Number(clean.replace(/\./g, '').replace(',', '.'));
+  }
+  const parts = clean.split('.');
+  if (parts.length > 2) {
+    return Number(clean.replace(/\./g, ''));
+  }
+  if (parts.length === 2 && parts[1].length === 3) {
+    return Number(clean.replace('.', ''));
+  }
+  return Number(clean);
+}
+
+export function AddBillModal({
+  open,
+  onClose,
+  onSubmit,
+  initialData,
+  editingBill = null,
+}: AddBillModalProps) {
+  const isEditing = Boolean(editingBill);
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
   const [due, setDue] = useState('');
   const [category, setCategory] = useState<BillCategory>('Outros');
   const [barcode, setBarcode] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
+    setErrorMessage('');
+    setIsSubmitting(false);
+    if (!open) return;
+
+    if (editingBill) {
+      setName(editingBill.name);
+      setValue(String(editingBill.value).replace('.', ','));
+      setDue(String(editingBill.due));
+      setCategory(editingBill.category);
+      setBarcode(editingBill.barcode || '');
+      return;
+    }
+
     if (initialData) {
       setName(initialData.name || '');
       setValue(initialData.value ? String(initialData.value).replace('.', ',') : '');
       setDue(initialData.due ? String(initialData.due) : '');
       setCategory(initialData.category || 'Outros');
       setBarcode(initialData.barcode || '');
-    } else {
-      setName('');
-      setValue('');
-      setDue('');
-      setCategory('Outros');
-      setBarcode('');
+      return;
     }
-  }, [initialData, open]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    setName('');
+    setValue('');
+    setDue('');
+    setCategory('Outros');
+    setBarcode('');
+  }, [editingBill, initialData, open]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onSubmit({
-      name,
-      category,
-      value: Number(value.replace(',', '.')),
-      due: Number(due),
-      paid: false,
-      barcode: barcode || undefined,
-    });
-    onClose();
+    setErrorMessage('');
+    const parsedValue = parseCurrency(value);
+    if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+      setErrorMessage('Informe um valor válido.');
+      return;
+    }
+    const parsedDue = parseInt(due, 10);
+    if (!Number.isFinite(parsedDue) || parsedDue < 1 || parsedDue > 31) {
+      setErrorMessage('Dia de vencimento deve ser entre 1 e 31.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await onSubmit({
+        name: name.trim(),
+        category,
+        value: parsedValue,
+        due: parsedDue,
+        paid: editingBill?.paid ?? false,
+        barcode: barcode.trim() || undefined,
+        notes: editingBill?.notes,
+      });
+      onClose();
+    } catch {
+      setErrorMessage('Erro ao salvar conta. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Adicionar nova conta"
-      description="Cadastre uma vez. A gente organiza e lembra você."
+      title={isEditing ? 'Editar conta' : 'Adicionar nova conta'}
+      description={
+        isEditing
+          ? 'Ajuste o valor, vencimento ou outros dados desta conta.'
+          : 'Cadastre uma vez. A gente organiza e lembra você.'
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block text-xs font-bold text-zinc-300">
@@ -74,6 +138,7 @@ export function AddBillModal({ open, onClose, onSubmit, initialData }: AddBillMo
               name="value"
               required
               inputMode="decimal"
+              autoFocus={isEditing}
               value={value}
               onChange={(e) => setValue(e.target.value)}
               placeholder="0,00"
@@ -119,11 +184,18 @@ export function AddBillModal({ open, onClose, onSubmit, initialData }: AddBillMo
           </div>
         )}
 
+        {errorMessage && (
+          <p className="rounded-lg bg-rose-950/60 border border-rose-900/80 p-2.5 text-center text-xs font-semibold text-rose-300">
+            {errorMessage}
+          </p>
+        )}
+
         <button
           type="submit"
-          className="mt-2 h-11 w-full rounded-xl bg-emerald-600 text-sm font-bold text-white transition hover:bg-emerald-500"
+          disabled={isSubmitting}
+          className="mt-2 h-11 w-full rounded-xl bg-emerald-600 text-sm font-bold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Salvar conta
+          {isSubmitting ? 'Salvando...' : isEditing ? 'Salvar alterações' : 'Salvar conta'}
         </button>
       </form>
     </Modal>

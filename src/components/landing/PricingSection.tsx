@@ -1,13 +1,11 @@
-import { useState } from 'react';
 import { Check, Sparkles, Shield, ArrowRight } from 'lucide-react';
+import { SUBSCRIPTION } from '@/lib/subscription';
 
 type PricingSectionProps = {
   onOpenLogin: () => void;
 };
 
 export function PricingSection({ onOpenLogin }: PricingSectionProps) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-
   return (
     <section id="planos" className="relative py-20 md:py-28 border-t border-[#1f372c]/80 bg-[#0a130f]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -19,41 +17,11 @@ export function PricingSection({ onOpenLogin }: PricingSectionProps) {
             Menos que um cafezinho para nunca mais pagar multas
           </h2>
           <p className="mt-3 text-sm text-zinc-400 sm:text-base">
-            Evite uma única multa de atraso na conta de luz e o Conta em Dia já se pagou no ano inteiro.
+            {SUBSCRIPTION.trialDays} dias grátis para testar o Pro. Depois só {SUBSCRIPTION.amountLabel}/mês.
           </p>
-
-          {/* Toggle Mensal / Anual */}
-          <div className="mt-8 inline-flex items-center rounded-xl border border-[#223d32] bg-[#122019] p-1 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setBillingCycle('monthly')}
-              className={`rounded-lg px-4 py-2 transition ${
-                billingCycle === 'monthly'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              Cobrança Mensal
-            </button>
-            <button
-              type="button"
-              onClick={() => setBillingCycle('yearly')}
-              className={`flex items-center gap-1.5 rounded-lg px-4 py-2 transition ${
-                billingCycle === 'yearly'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <span>Cobrança Anual</span>
-              <span className="rounded bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-extrabold text-amber-300">
-                20% OFF
-              </span>
-            </button>
-          </div>
         </div>
 
         <div className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-2 max-w-4xl mx-auto items-stretch">
-          {/* Plano Básico */}
           <div className="flex flex-col justify-between rounded-3xl border border-[#1f372c] bg-[#122019] p-8 transition hover:border-[#2a4d3e]">
             <div>
               <div className="flex items-center justify-between">
@@ -106,9 +74,7 @@ export function PricingSection({ onOpenLogin }: PricingSectionProps) {
             </button>
           </div>
 
-          {/* Plano Pro Família */}
           <div className="relative flex flex-col justify-between rounded-3xl border-2 border-emerald-500/80 bg-gradient-to-b from-[#14261e] to-[#0f1d16] p-8 shadow-2xl shadow-emerald-950/60">
-            {/* Ribbon */}
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
               <span className="flex items-center gap-1 rounded-full bg-emerald-600 px-4 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-md">
                 <Sparkles size={12} />
@@ -118,7 +84,7 @@ export function PricingSection({ onOpenLogin }: PricingSectionProps) {
 
             <div>
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-black text-white">Pro Família</h3>
+                <h3 className="text-lg font-black text-white">{SUBSCRIPTION.planName}</h3>
                 <span className="rounded-full bg-emerald-950 px-3 py-1 text-[10px] font-bold text-emerald-400 border border-emerald-800/40">
                   Completo
                 </span>
@@ -128,16 +94,12 @@ export function PricingSection({ onOpenLogin }: PricingSectionProps) {
               </p>
 
               <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl font-black text-white">
-                  {billingCycle === 'monthly' ? 'R$ 14,90' : 'R$ 11,90'}
-                </span>
+                <span className="text-4xl font-black text-white">{SUBSCRIPTION.amountLabel}</span>
                 <span className="text-xs text-zinc-400">/mês</span>
-                {billingCycle === 'yearly' && (
-                  <span className="ml-2 text-[11px] font-bold text-emerald-400">
-                    (R$ 142,80 cobrados anualmente)
-                  </span>
-                )}
               </div>
+              <p className="mt-1 text-xs font-bold text-emerald-300">
+                {SUBSCRIPTION.trialDays} dias grátis no cartão
+              </p>
 
               <ul className="mt-8 space-y-3.5 text-xs text-zinc-200">
                 <li className="flex items-center gap-2.5 font-bold">
@@ -173,7 +135,7 @@ export function PricingSection({ onOpenLogin }: PricingSectionProps) {
                 onClick={onOpenLogin}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-4 text-xs font-black text-white transition hover:bg-emerald-500 shadow-xl shadow-emerald-950/70 hover:scale-[1.02]"
               >
-                <span>Experimentar 14 Dias Grátis</span>
+                <span>Experimentar {SUBSCRIPTION.trialDays} Dias Grátis</span>
                 <ArrowRight size={14} />
               </button>
               <p className="text-center text-[10px] text-zinc-400 flex items-center justify-center gap-1">

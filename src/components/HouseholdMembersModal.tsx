@@ -31,6 +31,7 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
     leaveHousehold,
     renameHousehold,
     joinHousehold,
+    updateMemberName,
   } = useHousehold();
   const [inviteEmail, setInviteEmail] = useState('');
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -41,6 +42,8 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
   const [newName, setNewName] = useState('');
   const [isSwitchingHouse, setIsSwitchingHouse] = useState(false);
   const [switchCode, setSwitchCode] = useState('');
+  const [editingMemberUid, setEditingMemberUid] = useState<string | null>(null);
+  const [editingMemberName, setEditingMemberName] = useState('');
 
   const isOwner = household?.ownerUid === user?.uid;
 
@@ -249,6 +252,7 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
                       <img
                         src={member.photoURL}
                         alt={member.displayName}
+                        referrerPolicy="no-referrer"
                         className="size-9 rounded-full border border-emerald-600/40 object-cover"
                       />
                     ) : (
@@ -257,21 +261,69 @@ export function HouseholdMembersModal({ open, onClose }: HouseholdMembersModalPr
                       </div>
                     )}
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-xs font-bold text-white">{member.displayName}</p>
-                        {member.uid === user?.uid && (
-                          <span className="rounded bg-emerald-950 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-800/50">
-                            Você
-                          </span>
-                        )}
-                        {member.isOwner && (
-                          <span className="rounded bg-amber-950 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-800/50">
-                            Admin
-                          </span>
-                        )}
-                      </div>
-                      {member.email && (
-                        <p className="truncate text-[11px] text-zinc-400">{member.email}</p>
+                      {editingMemberUid === member.uid ? (
+                        <form
+                          className="flex items-center gap-2"
+                          onSubmit={async (e) => {
+                            e.preventDefault();
+                            try {
+                              await updateMemberName(member.uid, editingMemberName);
+                              setEditingMemberUid(null);
+                              setStatusMsg({ text: 'Nome atualizado.', type: 'success' });
+                            } catch {
+                              setStatusMsg({ text: 'Não foi possível salvar o nome.', type: 'error' });
+                            }
+                          }}
+                        >
+                          <input
+                            value={editingMemberName}
+                            onChange={(e) => setEditingMemberName(e.target.value)}
+                            className="h-8 w-36 rounded-lg border border-[#2a4d3e] bg-[#0c1612] px-2 text-xs text-white outline-none focus:border-emerald-500"
+                            autoFocus
+                          />
+                          <button type="submit" className="text-[10px] font-bold text-emerald-400">
+                            OK
+                          </button>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-xs font-bold text-white">{member.displayName}</p>
+                            {member.uid === user?.uid && (
+                              <span className="rounded bg-emerald-950 px-1.5 py-0.5 text-[9px] font-bold text-emerald-400 border border-emerald-800/50">
+                                Você
+                              </span>
+                            )}
+                            {member.isOwner && (
+                              <span className="rounded bg-amber-950 px-1.5 py-0.5 text-[9px] font-bold text-amber-400 border border-amber-800/50">
+                                Admin
+                              </span>
+                            )}
+                            {(isOwner || member.uid === user?.uid) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMemberUid(member.uid);
+                                  setEditingMemberName(
+                                    member.displayName === 'Morador' ? '' : member.displayName,
+                                  );
+                                }}
+                                className="text-zinc-500 hover:text-emerald-400"
+                                aria-label={`Editar nome de ${member.displayName}`}
+                              >
+                                <Pencil size={12} />
+                              </button>
+                            )}
+                          </div>
+                          {member.email && (
+                            <p className="truncate text-[11px] text-zinc-400">{member.email}</p>
+                          )}
+                          {!member.email && member.displayName === 'Morador' && (
+                            <p className="truncate text-[11px] text-amber-400/90">
+                              Toque no lápis para definir o nome
+                            </p>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>

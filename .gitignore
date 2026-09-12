@@ -10,7 +10,10 @@ dist
 
 # Android TWA / Bubblewrap
 android/android.keystore
+android/upload-keystore.jks
+android/upload_certificate.pem
 android/.keystore-credentials.local
+android/play-listing/
 android/app/
 android/gradle/
 android/gradlew

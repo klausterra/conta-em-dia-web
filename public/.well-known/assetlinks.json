@@ -5,7 +5,9 @@
       "namespace": "android_app",
       "package_name": "br.com.contaemdia.app",
       "sha256_cert_fingerprints": [
-        "78:29:20:A1:D6:F6:3B:39:7F:C7:AA:DE:3C:5D:F6:BE:77:C1:84:69:34:65:C4:E4:74:E8:77:A6:13:8A:28:5B"
+        "77:CC:51:AE:14:6D:39:81:B2:C4:8A:A3:97:E1:0D:80:45:C8:94:FE:AD:73:15:3A:91:41:DF:F9:51:F1:24:53",
+        "78:29:20:A1:D6:F6:3B:39:7F:C7:AA:DE:3C:5D:F6:BE:77:C1:84:69:34:65:C4:E4:74:E8:77:A6:13:8A:28:5B",
+        "4B:51:8E:B5:8A:5B:47:ED:1F:1E:61:7E:22:90:0E:56:FE:9F:2C:4C:22:E6:B8:9D:D7:87:7D:21:20:8E:FF:BB"
       ]
     }
   }
